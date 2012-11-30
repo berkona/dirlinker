@@ -52,7 +52,7 @@ class FileLinker:
             self._log('Processing directory ' + self._formatPath(self.source, root))
             newDir = root.replace(self.source, self.target, 1)
 
-            filtered = filter(lambda f: self._filterFile(path.join(newDir, f)), files)
+            filtered = list(filter(lambda f: self._filterFile(path.join(newDir, f)), files))
 
             # Offset directory creation to here to prevent creating empty directories.
             # I.e., when we don't link any files because of some filtering rule.
@@ -87,15 +87,19 @@ class FileLinker:
 
     def _parseFilter(self):
         self.filter = []
-        with open(self.filterPath, 'r', encoding='utf-8') as _filterFile:
-            for line in self._fileItr(_filterFile):
+        with open(self.filterPath, 'r', encoding='utf-8') as filterFile:
+            for line in self._fileItr(filterFile):
                 seps = line.split(',')
                 for ext in filter(lambda s: s or s.isspace(), seps):
                     self.filter.append(ext)
 
     def _filterFile(self, p):
-        ext = path.splitext(p)[1].lower()
-        return p == self.storeFile or p == self.logFile or path.exists(p) or path in self.links or ext not in self.filter
+        if (p == self.storeFile or p == self.logFile or path.exists(p)
+            or path.splitext(p)[1].lower().lstrip('.') not in self.filter
+            or p in self.links):
+            return False
+
+        return True
 
     def _makeLink(self, src, dst):
         if (self.linkFunc == None):
@@ -127,13 +131,15 @@ class FileLinker:
         with open(self.storeFile, 'wb') as f:
             pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
 
-        self._log('Wrote link list to ' + self._formatPath(self.target, self.storeFile))
+        self._log('Wrote session data to ' + self._formatPath(self.target, self.storeFile))
 
     def _formatMessage(self, msg):
         return time.strftime('%c', time.localtime()) + ' - ' + msg
 
-    def _formatPath(self, parent, path):
-        return path.replace(parent, '').replace('\\', '/')
+    def _formatPath(self, parent, p):
+        if parent == p:
+            return '/'
+        return p.replace(parent, '').replace('\\', '/')
 
     def _log(self, msg):
         try:
