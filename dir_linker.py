@@ -107,16 +107,13 @@ class FileLinker:
         self._log('Enabled extensions: %s' % ', '.join(self.filter))
 
     def _filterFile(self, p):
-        if (p == self.storeFile or p == self.logFile or path.exists(p)
-            or path.splitext(p)[1].lower().lstrip('.') not in self.filter
-            or p in self.links):
-            return False
-
-        return True
+        return not (p == self.storeFile or p == self.logFile or path.exists(p)
+            or path.splitext(p)[1].lower() not in self.filter
+            or p in self.links)
 
     def _makeLink(self, src, dst):
         if (self.linkFunc == None):
-            raise RuntimeError()
+            raise RuntimeError('No link function has been defined for this implementation or something horrible has happened')
         self._log('Created link ' + self._formatPath(self.target, dst))
         self.linkFunc(src, dst)
 

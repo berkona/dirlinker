@@ -3,10 +3,10 @@
 	# Using tabs
     # And using spaces has been tested
 
-3gp, 3g2, asf, wma,
-wmv, avi, divx, evo,
-f4v, flv, mkv, mk3d,
-mka, mks, mcf, mp4,
-mpg, mpeg, ps, ts,
-m2ts, mxf, ogg, mov,
-qt, rmvb, vob, webm
+.3gp, .3g2, .asf, .wma,
+.wmv, .avi, .divx, .evo,
+.f4v, .flv, .mkv, .mk3d,
+.mka, .mks, .mcf, .mp4,
+.mpg, .mpeg, .ps, .ts,
+.m2ts, .mxf, .ogg, .mov,
+.qt, .rmvb, .vob, .webm
