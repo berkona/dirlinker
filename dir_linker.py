@@ -81,7 +81,7 @@ class FileLinker:
 
     def _fileItr(self, _filterFile):
         for line in _filterFile:
-            line = line.replace('\n', '').replace(' ', '')
+            line = line.replace('\n', '').replace(' ', '').replace('\t', '')
             if line and not line.startswith('#'):
                 yield line
 
