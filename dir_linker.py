@@ -7,7 +7,6 @@ import time
 
 from os import path, walk, link, makedirs
 from platform import system
-from pprint import pprint
 from sys import argv
 from sys import exit
 
@@ -24,7 +23,8 @@ STRINGS = {
     'directory': 'Enable recreating the folder structure of SOURCE in TARGET'
 }
 
-# This is a somewhat complete list of extensions for video containers, suggestions are welcome
+# This is a somewhat complete list of extensions for video containers,
+# suggestions are welcome
 DEFAULT_FILTER_FILE = 'default_filter.txt'
 
 
@@ -37,8 +37,15 @@ class FileLinker:
         self.links = []
         self.linkFunc = None
 
-        self.linkFunc = self._makeLinkWindows if system() == 'Windows' else link
-        self.dirFunc = self._linkDirectories if self.enableDirectoryCreation else self._linkFlat
+        if system() == 'Windows':
+            self.linkFunc = self._makeLinkWindows
+        else:
+            self.linkFunc = link
+
+        if self.enableDirectoryCreation:
+            self.dirFunc = self._linkDirectories
+        else:
+            self.dirFunc = self._linkFlat
 
     def run(self):
         self._parseFilter()
@@ -52,11 +59,13 @@ class FileLinker:
             self._log('Processing directory ' + self._formatPath(self.source, root))
             newDir = root.replace(self.source, self.target, 1)
 
-            filtered = list(filter(lambda f: self._filterFile(path.join(newDir, f)), files))
+            filtered = list(filter(lambda f:
+                self._filterFile(path.join(newDir, f)), files))
 
             # Offset directory creation to here to prevent creating empty directories.
             # I.e., when we don't link any files because of some filtering rule.
-            # We use os.makedirs in case we skipped some intermediate folders due to filtering
+            # We use os.makedirs in case we skipped some intermediate folders
+            # due to filtering
             if len(filtered) > 0 and not path.exists(newDir):
                 self._log('Created directory ' + self._formatPath(self.target, newDir))
                 makedirs(newDir)
@@ -72,7 +81,8 @@ class FileLinker:
     def _linkFlat(self):
         for root, dirs, files in walk(self.source):
             self._log('Processing directory ' + self._formatPath(self.source, root))
-            filtered = filter(lambda f: self._filterFile(path.join(self.target, f)), files)
+            filtered = filter(lambda f:
+                self._filterFile(path.join(self.target, f)), files)
 
             for f in filtered:
                 newPath = path.join(self.target, f)
@@ -111,7 +121,8 @@ class FileLinker:
         self.linkFunc(src, dst)
 
     def _makeLinkWindows(self, source, target):
-        subprocess.call(['cmd', '/C', 'mklink', '/H', target, source], stdout=subprocess.PIPE)
+        subprocess.call(['cmd', '/C', 'mklink', '/H', target, source],
+            stdout=subprocess.PIPE)
 
     def _loadPickle(self):
         if not path.exists(self.storeFile):
@@ -122,7 +133,8 @@ class FileLinker:
                 and set(data['filter']) == set(self.filter)):
                 self.links = data['links']
 
-        self._log('Loaded link list from ' + self._formatPath(self.target, self.storeFile))
+        self._log('Loaded link list from '
+            + self._formatPath(self.target, self.storeFile))
 
     def _writePickle(self):
         data = {
@@ -134,7 +146,8 @@ class FileLinker:
         with open(self.storeFile, 'wb') as f:
             pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
 
-        self._log('Wrote session data to ' + self._formatPath(self.target, self.storeFile))
+        self._log('Wrote session data to '
+            + self._formatPath(self.target, self.storeFile))
 
     def _formatMessage(self, msg):
         return time.strftime('%c', time.localtime()) + ' - ' + msg
@@ -162,7 +175,8 @@ class FileLinker:
                     errorText = STRINGS['unicodeError']
                     errNo = u.errno
                     errMsg = u.strerror
-                    f.write(self._formatMessage('%s - (%d) %s' % (errorText, errNo, errMsg) + '\n'))
+                    f.write(self._formatMessage('%s - (%d) %s'
+                        % (errorText, errNo, errMsg) + '\n'))
 
 
 def main():
@@ -173,15 +187,22 @@ def main():
     parser.add_argument('target', type=path.abspath, help=STRINGS['target'])
 
     # optional flags
-    parser.add_argument('-v', '--version', action='version', version='%(prog)s v' + VERSION)
+    parser.add_argument('-v', '--version', action='version',
+        version='%(prog)s v' + VERSION)
 
-    parser.add_argument('-l', '--log-file', dest='logFile', default='dir_linker', metavar='LOG_FILE', help=STRINGS['logFile'])
+    parser.add_argument('-l', '--log-file', dest='logFile', default='dir_linker',
+        metavar='LOG_FILE', help=STRINGS['logFile'])
 
-    parser.add_argument('-s', '--store-file', dest='storeFile', default='dir_linker', metavar='STORE_FILE', help=STRINGS['storeFile'])
+    parser.add_argument('-s', '--store-file', dest='storeFile', default='dir_linker',
+        metavar='STORE_FILE', help=STRINGS['storeFile'])
 
-    parser.add_argument('-f', '--filter',  dest='filterPath', type=path.abspath, default=path.join(path.dirname(argv[0]), DEFAULT_FILTER_FILE), metavar='FILTER_FILE', help=STRINGS['filter'])
+    parser.add_argument('-f', '--filter',  dest='filterPath', type=path.abspath,
+        default=path.join(path.dirname(argv[0]), DEFAULT_FILTER_FILE),
+        metavar='FILTER_FILE', help=STRINGS['filter'])
 
-    parser.add_argument('-d', '--enable-directory-creation', dest='enableDirectoryCreation', action='store_const', const=True, default=False, help=STRINGS['directory'])
+    parser.add_argument('-d', '--enable-directory-creation',
+        dest='enableDirectoryCreation', action='store_const', const=True,
+        default=False, help=STRINGS['directory'])
 
     args = parser.parse_args()
 
