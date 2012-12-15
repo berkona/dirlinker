@@ -1,5 +1,7 @@
 # This is a sample filter that accepts most common video extensions
 # Note that you can write comments using the '#' character at the beginning
+	# Using tabs
+    # And using spaces has been tested
 
 3gp, 3g2, asf, wma,
 wmv, avi, divx, evo,

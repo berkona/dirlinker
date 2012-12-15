@@ -93,6 +93,9 @@ class FileLinker:
                 for ext in filter(lambda s: s or s.isspace(), seps):
                     self.filter.append(ext)
 
+        self._log('Filter loaded from %s.' % self.filterPath)
+        self._log('Enabled extensions: %s' % ', '.join(self.filter))
+
     def _filterFile(self, p):
         if (p == self.storeFile or p == self.logFile or path.exists(p)
             or path.splitext(p)[1].lower().lstrip('.') not in self.filter
