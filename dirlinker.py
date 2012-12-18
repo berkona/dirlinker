@@ -70,7 +70,7 @@ class FileLinker:
             # I.e., when we don't link any files because of some filtering rule.
             # We use os.makedirs in case we skipped some intermediate folders
             # due to filtering
-            if not filtered and not path.exists(newDir):
+            if filtered and not path.exists(newDir):
                 self._log('Created directory ' + self._formatPath(self.target, newDir))
                 makedirs(newDir)
 
@@ -91,8 +91,8 @@ class FileLinker:
                 self.links.append(newPath)
 
     def _pruneDirectories(self):
-        for root, dirs, files in walk(self.target, TopDown=False):
-            if (len(dirs) == 0 and len(files) == 0):
+        for root, dirs, files in walk(self.target, topdown=False):
+            if (not dirs and not files):
                 self._log('Pruning empty directory ' + self._formatPath(self.target, root))
                 rmdir(root)
 
