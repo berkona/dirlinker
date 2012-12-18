@@ -19,7 +19,8 @@ STRINGS = {
     'logFile': 'Name of the log file.  The log file will be placed in target/LOG_FILE.log.',
     'storeFile': 'Name of the storage file.  The file will be place in target/STORE_FILE.ldir.',
     'filter': 'This will load extensions from the given file (it assumes the file is either comma or new-line delimited.',
-    'directory': 'Enable recreating the folder structure of SOURCE in TARGET'
+    'directory': 'Enable recreating the folder structure of SOURCE in TARGET',
+    'prune': 'Delete all empty directories inside of TARGET after linking'
 }
 
 # This is a somewhat complete list of extensions for video containers,
@@ -197,10 +198,10 @@ def main():
     parser.add_argument('-v', '--version', action='version',
         version=VERSION)
 
-    parser.add_argument('-l', '--log-file', dest='logFile', default='dir_linker',
+    parser.add_argument('-l', '--log-file', dest='logFile', default='dirlinker',
         metavar='LOG_FILE', help=STRINGS['logFile'])
 
-    parser.add_argument('-s', '--store-file', dest='storeFile', default='dir_linker',
+    parser.add_argument('-s', '--store-file', dest='storeFile', default='dirlinker',
         metavar='STORE_FILE', help=STRINGS['storeFile'])
 
     parser.add_argument('-f', '--filter',  dest='filterPath', type=path.abspath,
@@ -212,7 +213,7 @@ def main():
         default=False, help=STRINGS['directory'])
 
     parser.add_argument('-p', '--prune-directories', dest='pruneDirectories',
-        action='store_const', const=True, default=False)
+        action='store_const', const=True, default=False, help=STRINGS['prune'])
 
     config = parser.parse_args()
 
