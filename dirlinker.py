@@ -10,8 +10,7 @@ from platform import system
 from sys import argv
 from sys import exit
 
-
-VERSION = '1.1'
+VERSION = '%(prog)s v1.1'
 STRINGS = {
     'unicodeError': 'Could not write link, invalid character encoding',
     'description': 'This program recursively scans a source directory and places hard links of all files specified by FILTER_FILE (defaults to video files) in the target directory.  A list of previously linked files is maintained by this program so that only files which were not linked previously are linked.',
@@ -71,7 +70,7 @@ class FileLinker:
             # I.e., when we don't link any files because of some filtering rule.
             # We use os.makedirs in case we skipped some intermediate folders
             # due to filtering
-            if len(filtered) > 0 and not path.exists(newDir):
+            if not filtered and not path.exists(newDir):
                 self._log('Created directory ' + self._formatPath(self.target, newDir))
                 makedirs(newDir)
 
@@ -97,28 +96,30 @@ class FileLinker:
                 self._log('Pruning empty directory ' + self._formatPath(self.target, root))
                 rmdir(root)
 
+    def _filterFileItr(self, filterFile):
+        for line in filterFile:
+            line = line.replace('\t', '').replace('\n', '').replace(' ', '')
+            if not line or line.startswith('#'):
+                continue
 
-    def _fileItr(self, _filterFile):
-        for line in _filterFile:
-            line = line.replace('\n', '').replace(' ', '').replace('\t', '')
-            if line and not line.startswith('#'):
-                yield line
+            for token in filter(lambda s: s or s.isspace(), line.split(',')):
+                if not token or token.startswith('#'):
+                    continue
+
+                yield token
 
     def _parseFilter(self):
         self.filter = []
         with open(self.filterPath, 'r', encoding='utf-8') as filterFile:
-            for line in self._fileItr(filterFile):
-                seps = line.split(',')
-                for ext in filter(lambda s: s or s.isspace(), seps):
-                    self.filter.append(ext)
+            for ext in self._filterFileItr(filterFile):
+                self.filter.append(ext)
 
         self._log('Filter loaded from %s.' % self.filterPath)
         self._log('Enabled extensions: %s' % ', '.join(self.filter))
 
     def _filterFile(self, p):
-        return not (p == self.storeFile or p == self.logFile or path.exists(p)
-            or path.splitext(p)[1].lower() not in self.filter
-            or p in self.links)
+        return not (path.exists(p) or p in self.links or
+            path.splitext(p)[1].lower() not in self.filter)
 
     def _makeLink(self, src, dst):
         if (self.linkFunc == None):
@@ -194,7 +195,7 @@ def main():
 
     # optional flags
     parser.add_argument('-v', '--version', action='version',
-        version='%(prog)s v%s' % VERSION)
+        version=VERSION)
 
     parser.add_argument('-l', '--log-file', dest='logFile', default='dir_linker',
         metavar='LOG_FILE', help=STRINGS['logFile'])

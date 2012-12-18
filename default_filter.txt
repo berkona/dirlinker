@@ -3,7 +3,7 @@
 	# Using tabs
     # And using spaces has been tested
 
-.3gp, .3g2, .asf, .wma,
+.3gp, .3g2, .asf, .wma,		# This is a trailing comment
 .wmv, .avi, .divx, .evo,
 .f4v, .flv, .mkv, .mk3d,
 .mka, .mks, .mcf, .mp4,
