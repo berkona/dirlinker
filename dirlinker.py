@@ -5,7 +5,7 @@ import argparse
 import pickle
 import time
 
-from os import path, walk, link, makedirs
+from os import path, walk, link, makedirs, rmdir
 from platform import system
 from sys import argv
 from sys import exit
@@ -29,8 +29,8 @@ DEFAULT_FILTER_FILE = 'default_filter.txt'
 
 
 class FileLinker:
-    def __init__(self, args):
-        for n, v in vars(args).items():
+    def __init__(self, config):
+        for n, v in vars(config).items():
             setattr(self, n, v)
 
         self.messages = []
@@ -50,7 +50,12 @@ class FileLinker:
     def run(self):
         self._parseFilter()
         self._loadPickle()
+
         self.dirFunc()
+
+        if (self.pruneDirectories):
+            self._pruneDirectories()
+
         self._writePickle()
         self._writeLog()
 
@@ -75,9 +80,6 @@ class FileLinker:
                 self._makeLink(path.join(root, f), newPath)
                 self.links.append(newPath)
 
-        self._writePickle()
-        self._writeLog()
-
     def _linkFlat(self):
         for root, dirs, files in walk(self.source):
             self._log('Processing directory ' + self._formatPath(self.source, root))
@@ -88,6 +90,13 @@ class FileLinker:
                 newPath = path.join(self.target, f)
                 self._makeLink(path.join(root, f), newPath)
                 self.links.append(newPath)
+
+    def _pruneDirectories(self):
+        for root, dirs, files in walk(self.target, TopDown=False):
+            if (len(dirs) == 0 and len(files) == 0):
+                self._log('Pruning empty directory ' + self._formatPath(self.target, root))
+                rmdir(root)
+
 
     def _fileItr(self, _filterFile):
         for line in _filterFile:
@@ -147,7 +156,7 @@ class FileLinker:
             + self._formatPath(self.target, self.storeFile))
 
     def _formatMessage(self, msg):
-        return time.strftime('%c', time.localtime()) + ' - ' + msg
+        return '%s - %s' % (time.strftime('%c', time.localtime()), msg)
 
     def _formatPath(self, parent, p):
         if parent == p:
@@ -172,8 +181,8 @@ class FileLinker:
                     errorText = STRINGS['unicodeError']
                     errNo = u.errno
                     errMsg = u.strerror
-                    f.write(self._formatMessage('%s - (%d) %s'
-                        % (errorText, errNo, errMsg) + '\n'))
+                    f.write(self._formatMessage('%s - (%d) %s\n'
+                        % (errorText, errNo, errMsg)))
 
 
 def main():
@@ -185,7 +194,7 @@ def main():
 
     # optional flags
     parser.add_argument('-v', '--version', action='version',
-        version='%(prog)s v' + VERSION)
+        version='%(prog)s v%s' % VERSION)
 
     parser.add_argument('-l', '--log-file', dest='logFile', default='dir_linker',
         metavar='LOG_FILE', help=STRINGS['logFile'])
@@ -201,13 +210,16 @@ def main():
         dest='enableDirectoryCreation', action='store_const', const=True,
         default=False, help=STRINGS['directory'])
 
-    args = parser.parse_args()
+    parser.add_argument('-p', '--prune-directories', dest='pruneDirectories',
+        action='store_const', const=True, default=False)
+
+    config = parser.parse_args()
 
     # Post-processing for arguments
-    args.logFile = path.join(args.target, args.logFile + '.log')
-    args.storeFile = path.join(args.target, args.storeFile + '.ldir')
+    config.logFile = path.join(config.target, config.logFile + '.log')
+    config.storeFile = path.join(config.target, config.storeFile + '.ldir')
 
-    FileLinker(args).run()
+    FileLinker(config).run()
 
     return 0
 
