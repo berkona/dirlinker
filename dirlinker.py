@@ -4,6 +4,7 @@ import subprocess
 import argparse
 import pickle
 import time
+import json
 
 from os import path, walk, link, makedirs, rmdir
 from platform import system
@@ -110,10 +111,8 @@ class FileLinker:
                 yield token
 
     def _parseFilter(self):
-        self.filter = []
         with open(self.filterPath, 'r', encoding='utf-8') as filterFile:
-            for ext in self._filterFileItr(filterFile):
-                self.filter.append(ext)
+            self.filter = json.load(filterFile)
 
         self._log('Filter loaded from %s.' % self.filterPath)
         self._log('Enabled extensions: %s' % ', '.join(self.filter))
