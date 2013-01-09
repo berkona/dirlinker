@@ -111,7 +111,7 @@ class FileLinker:
                 yield token
 
     def _parseFilter(self):
-        with open(self.filterPath, 'r', encoding='utf-8') as filterFile:
+        with open(self.filterPath, 'r') as filterFile:
             self.filter = json.load(filterFile)
 
         self._log('Filter loaded from %s.' % self.filterPath)
@@ -174,7 +174,7 @@ class FileLinker:
 
     def _writeLog(self):
         self._log('Wrote log to ' + self._formatPath(self.target, self.logFile))
-        with open(self.logFile, 'a', encoding='utf-8') as f:
+        with open(self.logFile, 'a') as f:
             for msg in self.messages:
                 try:
                     f.write(msg + '\n')
