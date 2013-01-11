@@ -98,18 +98,6 @@ class FileLinker:
                 self._log('Pruning empty directory ' + self._formatPath(self.target, root))
                 rmdir(root)
 
-    def _filterFileItr(self, filterFile):
-        for line in filterFile:
-            line = line.replace('\t', '').replace('\n', '').replace(' ', '')
-            if not line or line.startswith('#'):
-                continue
-
-            for token in filter(lambda s: s or s.isspace(), line.split(',')):
-                if not token or token.startswith('#'):
-                    continue
-
-                yield token
-
     def _parseFilter(self):
         with open(self.filterPath, 'r', encoding='utf-8') as filterFile:
             self.filter = json.load(filterFile)
