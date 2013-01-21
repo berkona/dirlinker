@@ -53,6 +53,9 @@ class FileLinker:
             self.dirFunc = self._linkFlat
 
     def run(self):
+        prefix = '#' * 10
+        Logger.debug('%s FileLinker startup %s', prefix, prefix)
+
         try:
             self._parseFilter()
         except:
@@ -77,6 +80,8 @@ class FileLinker:
         except:
             Logger.exception('Could not write session data:')
             raise
+
+        Logger.debug('%s FileLinker shutdown %s', prefix, prefix)
 
     def _linkDirectories(self):
         for root, dirs, files in walk(self.source):
@@ -242,6 +247,8 @@ def main():
 
     fileHandler = logging.FileHandler(config.logFile,
         encoding='utf-8', delay=True)
+    fileHandler.formatter = logging.Formatter('%(asctime)s|%(levelname)-7.7s %(message)s')
+    fileHandler.level = logging.DEBUG
 
     Logger.addHandler(fileHandler)
 
