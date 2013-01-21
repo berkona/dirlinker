@@ -2,14 +2,16 @@
 
 import subprocess
 import argparse
+import logging
 import pickle
-import time
 import json
 
+import logging.config
+
 from os import path, walk, link, makedirs, rmdir
+from sys import argv, exit
 from platform import system
-from sys import argv
-from sys import exit
+
 
 VERSION = '%(prog)s v1.1'
 STRINGS = {
@@ -27,6 +29,8 @@ STRINGS = {
 # This is a somewhat complete list of extensions for video containers,
 # suggestions are welcome
 DEFAULT_FILTER_FILE = 'default_filter.txt'
+
+Logger = logging.getLogger()
 
 
 class FileLinker:
@@ -49,61 +53,83 @@ class FileLinker:
             self.dirFunc = self._linkFlat
 
     def run(self):
-        self._parseFilter()
-        self._loadPickle()
+        try:
+            self._parseFilter()
+        except:
+            Logger.exception('Could not load filter:')
+            raise
 
+        try:
+            self._loadPickle()
+        except:
+            Logger.exception('Could not load session data:')
+            raise
+
+        # Implementations should probably handle exceptions on their own
         self.dirFunc()
 
+        # _pruneDirectories() handles exception
         if (self.pruneDirectories):
             self._pruneDirectories()
 
-        self._writePickle()
-        self._writeLog()
+        try:
+            self._writePickle()
+        except:
+            Logger.exception('Could not write session data:')
+            raise
 
     def _linkDirectories(self):
         for root, dirs, files in walk(self.source):
-            self._log('Processing directory ' + self._formatPath(self.source, root))
+            Logger.info('Processing directory %s',
+                self._formatPath(self.source, root))
             newDir = root.replace(self.source, self.target, 1)
 
             filtered = list(filter(lambda f:
                 self._filterFile(path.join(newDir, f)), files))
 
-            # Offset directory creation to here to prevent creating empty directories.
-            # I.e., when we don't link any files because of some filtering rule.
-            # We use os.makedirs in case we skipped some intermediate folders
-            # due to filtering
+            # Offset directory creation to here to prevent creating empty
+            # directories. I.e., when we don't link any files because of
+            # some filtering rule. We use os.makedirs in case we skipped
+            # some intermediate folders due to filtering
             if filtered and not path.exists(newDir):
-                self._log('Created directory ' + self._formatPath(self.target, newDir))
+                Logger.info('Created directory %s',
+                    self._formatPath(self.target, newDir))
                 makedirs(newDir)
 
             for f in filtered:
                 newPath = path.join(newDir, f)
                 self._makeLink(path.join(root, f), newPath)
-                self.links.append(newPath)
 
     def _linkFlat(self):
         for root, dirs, files in walk(self.source):
-            self._log('Processing directory ' + self._formatPath(self.source, root))
+            Logger.info('Processing directory %s',
+                self._formatPath(self.source, root))
+
             filtered = filter(lambda f:
                 self._filterFile(path.join(self.target, f)), files)
 
             for f in filtered:
                 newPath = path.join(self.target, f)
                 self._makeLink(path.join(root, f), newPath)
-                self.links.append(newPath)
 
     def _pruneDirectories(self):
         for root, dirs, files in walk(self.target, topdown=False):
-            if (not dirs and not files):
-                self._log('Pruning empty directory ' + self._formatPath(self.target, root))
+            if dirs or files:
+                continue
+
+            Logger.info('Pruning empty directory %s',
+                self._formatPath(self.target, root))
+            try:
                 rmdir(root)
+            except:
+                Logger.exception('Could not remove directory %s', root)
 
     def _parseFilter(self):
         with open(self.filterPath, 'r') as filterFile:
             self.filter = json.load(filterFile)
 
-        self._log('Filter loaded from %s.' % self.filterPath)
-        self._log('Enabled extensions: %s' % ', '.join(self.filter))
+        Logger.info('Filter loaded from %s.', self.filterPath)
+        Logger.info('Enabled extensions: %s', ', '.join(self.filter))
 
     def _filterFile(self, p):
         return not (path.exists(p) or p in self.links or
@@ -112,8 +138,12 @@ class FileLinker:
     def _makeLink(self, src, dst):
         if (self.linkFunc == None):
             raise RuntimeError('No link function has been defined for this implementation or something horrible has happened')
-        self._log('Created link ' + self._formatPath(self.target, dst))
-        self.linkFunc(src, dst)
+        Logger.info('Created link %s', self._formatPath(self.target, dst))
+        try:
+            self.linkFunc(src, dst)
+            self.links.append(dst)
+        except:
+            Logger.exception('Could not make link %s => %s', src, dst)
 
     def _makeLinkWindows(self, source, target):
         subprocess.call(['cmd', '/C', 'mklink', '/H', target, source],
@@ -128,8 +158,8 @@ class FileLinker:
                 and set(data['filter']) == set(self.filter)):
                 self.links = data['links']
 
-        self._log('Loaded link list from '
-            + self._formatPath(self.target, self.storeFile))
+        Logger.info('Loaded link list from %s',
+            self._formatPath(self.target, self.storeFile))
 
     def _writePickle(self):
         data = {
@@ -141,37 +171,37 @@ class FileLinker:
         with open(self.storeFile, 'wb') as f:
             pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
 
-        self._log('Wrote session data to '
-            + self._formatPath(self.target, self.storeFile))
+        Logger.info('Wrote session data to %s',
+            self._formatPath(self.target, self.storeFile))
 
-    def _formatMessage(self, msg):
-        return '%s - %s' % (time.strftime('%c', time.localtime()), msg)
+    # def _formatMessage(self, msg):
+    #     return '%s - %s' % (time.strftime('%c', time.localtime()), msg)
 
     def _formatPath(self, parent, p):
         if parent == p:
             return '/'
         return p.replace(parent, '').replace('\\', '/')
 
-    def _log(self, msg):
-        try:
-            formattedStr = self._formatMessage(msg)
-            self.messages.append(formattedStr)
-            print(formattedStr)
-        except UnicodeEncodeError:
-            self.messages.append(self._formatMessage(STRINGS['unicodeError']))
+    # def _log(self, msg):
+    #     try:
+    #         formattedStr = self._formatMessage(msg)
+    #         self.messages.append(formattedStr)
+    #         print(formattedStr)
+    #     except UnicodeEncodeError:
+    #         self.messages.append(self._formatMessage(STRINGS['unicodeError']))
 
-    def _writeLog(self):
-        self._log('Wrote log to ' + self._formatPath(self.target, self.logFile))
-        with open(self.logFile, 'a') as f:
-            for msg in self.messages:
-                try:
-                    f.write(msg + '\n')
-                except UnicodeEncodeError as u:
-                    errorText = STRINGS['unicodeError']
-                    errNo = u.errno
-                    errMsg = u.strerror
-                    f.write(self._formatMessage('%s - (%d) %s\n'
-                        % (errorText, errNo, errMsg)))
+    # def _writeLog(self):
+    #     Logger.info`('Wrote log to ' + self._formatPath(self.target, self.logFile))
+    #     with open(self.logFile, 'a') as f:
+    #         for msg in self.messages:
+    #             try:
+    #                 f.write(msg + '\n')
+    #             except UnicodeEncodeError as u:
+    #                 errorText = STRINGS['unicodeError']
+    #                 errNo = u.errno
+    #                 errMsg = u.strerror
+    #                 f.write(self._formatMessage('%s - (%d) %s\n'
+    #                     % (errorText, errNo, errMsg)))
 
 
 def main():
@@ -196,8 +226,7 @@ def main():
         metavar='FILTER_FILE', help=STRINGS['filter'])
 
     parser.add_argument('-d', '--enable-directory-creation',
-        dest='enableDirectoryCreation', action='store_const', const=True,
-        default=False, help=STRINGS['directory'])
+        dest='enableDirectoryCreation', action='store_true', default=False, help=STRINGS['directory'])
 
     parser.add_argument('-p', '--prune-directories', dest='pruneDirectories',
         action='store_const', const=True, default=False, help=STRINGS['prune'])
@@ -208,7 +237,17 @@ def main():
     config.logFile = path.join(config.target, config.logFile + '.log')
     config.storeFile = path.join(config.target, config.storeFile + '.ldir')
 
+    configPath = path.join(path.dirname(argv[0]), 'log_config.ini')
+    logging.config.fileConfig(configPath)
+
+    fileHandler = logging.FileHandler(config.logFile,
+        encoding='utf-8', delay=True)
+
+    Logger.addHandler(fileHandler)
+
     FileLinker(config).run()
+
+    logging.shutdown()
 
     return 0
 
