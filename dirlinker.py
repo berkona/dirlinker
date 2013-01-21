@@ -143,10 +143,10 @@ class FileLinker:
     def _makeLink(self, src, dst):
         if (self.linkFunc == None):
             raise RuntimeError('No link function has been defined for this implementation or something horrible has happened')
-        Logger.info('Created link %s', self._formatPath(self.target, dst))
         try:
             self.linkFunc(src, dst)
             self.links.append(dst)
+            Logger.info('Created link %s', self._formatPath(self.target, dst))
         except:
             Logger.exception('Could not make link %s => %s', src, dst)
 
