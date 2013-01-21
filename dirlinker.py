@@ -247,7 +247,7 @@ def main():
 
     fileHandler = logging.FileHandler(config.logFile,
         encoding='utf-8', delay=True)
-    fileHandler.formatter = logging.Formatter('%(asctime)s|%(levelname)-7.7s %(message)s')
+    fileHandler.formatter = logging.Formatter('%(asctime)s|%(levelname)-7.7s %(message)s', '%H:%M:%S')
     fileHandler.level = logging.DEBUG
 
     Logger.addHandler(fileHandler)
